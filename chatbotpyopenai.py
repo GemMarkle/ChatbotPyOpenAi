@@ -67,6 +67,9 @@ class ChatManager:
         self.context = Context(personality)
         self.history = [ personality.get_personality_prompt() ]
 
+    def get_history(self):
+        return [ m.to_dict() for m in self.history ]
+
     def reset_chat(self):
         self.context.reset_context()
         del self.history[1:]
@@ -227,18 +230,44 @@ class PersonalityManager:
 def main():
     personality_manager = PersonalityManager()
     chat_manager = ChatManager(personality_manager.get_default_personality())
+    
+    print("Use command #Personality to choose different personality.")
 
     while True:
         user_prompt = input("User: ")
         
         if user_prompt.lower() == "quit":
             break
+        if user_prompt.lower() == "#personality":
+            i = 0
+            for p in personality_manager.get_personalities_list():
+                i += 1
+                print(f"{i}. {p.get_name()}")
+            print(f"{i + 1}. Custom")
+            personality_select = input("Select number: ")
+            try:
+                personality_int = (int(personality_select) - 1)
+            except ValueError:
+                print("Invalid selection.")
+                continue
 
-        user_prompt_message = ChatMessage("user", user_prompt)
-        response_message = chat_manager.submit_prompt(user_prompt_message)
+            if personality_int == (i):
+                personality_name = input("Enter personality name: ")
+                personality_prompt = input("Write an instructional prompt for the chatbot's personality: ")
+                personality_manager.add_personality(Personality(personality_name, "Custom", personality_prompt))
+            elif personality_int > (i):
+                print("Invalid selection.")
+                continue
+            chat_manager = ChatManager(personality_manager.get_personalities_list()[personality_int])
+            continue
+        elif user_prompt.lower() == "#history":
+            print(json.dumps(chat_manager.get_history()))
+        else:
+            user_prompt_message = ChatMessage("user", user_prompt)
+            response_message = chat_manager.submit_prompt(user_prompt_message)
         
-        response = response_message.get_content()
-        print(f"Chatbot: {response}\n")
+            response = response_message.get_content()
+            print(f"Chatbot: {response}\n")
 
 if __name__ == "__main__":
     main()
